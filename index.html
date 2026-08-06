@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simulador de vuelo — Proyecto Hielo</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <h1>Simulador de vuelo</h1>
+    <div class="subtitle">Entrenamiento de navegación — Proyecto Hielo</div>
+
+    <div class="panel">
+      <h2>Track de vuelo</h2>
+      <label for="trackSelect">Línea propuesta</label>
+      <select id="trackSelect"></select>
+      <label for="speedKmh" style="margin-top:8px">Velocidad horizontal (km/h)</label>
+      <input type="number" id="speedKmh" value="350" min="50" max="900" step="10" />
+      <button id="loadBtn">Cargar track</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Reproducción</h2>
+      <div class="row">
+        <button id="playBtn">▶ Reproducir</button>
+        <button id="resetBtn">⟲ Reiniciar</button>
+      </div>
+      <label for="speedSelect">Velocidad de simulación</label>
+      <select id="speedSelect">
+        <option value="1">1x (tiempo real)</option>
+        <option value="2">2x</option>
+        <option value="5">5x</option>
+        <option value="10">10x</option>
+        <option value="20">20x</option>
+        <option value="60">60x</option>
+      </select>
+      <label for="zoomRange">Zoom</label>
+      <input type="range" id="zoomRange" min="0" max="1000" step="1" value="491" style="width:100%" />
+      <div id="zoomLabel" class="muted" style="margin-bottom:6px">—</div>
+      <div class="muted" style="margin-top:2px">También podés usar la rueda del mouse sobre el mapa</div>
+      <label for="nudgeSeconds" style="margin-top:8px">Adelantar/retroceder (mismo rumbo)</label>
+      <div class="row">
+        <input type="number" id="nudgeSeconds" value="30" min="1" max="3600" style="margin-bottom:0" />
+        <span style="align-self:center;font-size:12px;color:#94a3b8">segundos</span>
+      </div>
+      <div class="row">
+        <button id="rewindBtn">◀◀ Retroceder</button>
+        <button id="ffBtn">▶▶ Adelantar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Órdenes al piloto</h2>
+      <label for="turnDeg">Grados de giro</label>
+      <input type="number" id="turnDeg" value="30" min="1" max="180" />
+      <div class="row">
+        <button id="turnLeftBtn" class="turn-left">⟲ Preparar izquierda</button>
+        <button id="turnRightBtn" class="turn-right">⟳ Preparar derecha</button>
+      </div>
+      <div id="armedTurnIndicator" class="muted" style="margin:4px 0 8px">Sin giro preparado</div>
+      <button id="dropPointBtn" class="drop-point" style="width:100%" disabled>⬇ En el punto de caída</button>
+      <label for="altDelta" style="margin-top:10px">Cambio de altitud (m)</label>
+      <input type="number" id="altDelta" value="100" min="10" max="1000" />
+      <div class="row">
+        <button id="climbBtn" class="climb">▲ Subir</button>
+        <button id="descendBtn" class="descend">▼ Bajar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Medición</h2>
+      <div class="row">
+        <button id="measureDistBtn">📏 Distancia</button>
+        <button id="measureAngleBtn">📐 Ángulo</button>
+      </div>
+      <div id="measureHint" class="muted" style="margin:6px 0">Elegí una herramienta</div>
+      <div id="measureReadout">
+        <div id="measDistRow" style="display:none"><span class="label">Distancia:</span> <span id="measDist">—</span></div>
+        <div id="measBearingRow" style="display:none"><span class="label">Rumbo:</span> <span id="measBearing">—</span></div>
+        <div id="measAngleRow" style="display:none"><span class="label">Ángulo:</span> <span id="measAngle">—</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Órdenes pendientes (piloto)</h2>
+      <div id="pendingList"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Historial ejecutado</h2>
+      <div id="logList"></div>
+    </div>
+  </div>
+
+  <div id="mapWrap">
+    <canvas id="mapCanvas"></canvas>
+    <div id="hudTrackName"></div>
+    <button id="centerBtn" title="Centrar en el avión">🎯 Centrar</button>
+    <div id="hud">
+      <div><span class="label">Tiempo sim.:</span><span id="hudTime">00:00:00</span></div>
+      <div><span class="label">Posición:</span><span id="hudCoords">—</span></div>
+      <div><span class="label">Rumbo:</span><span id="hudHeading">—</span></div>
+      <div><span class="label">Vel. horizontal:</span><span id="hudSpeed">—</span></div>
+      <div><span class="label">Alt. MSL:</span><span id="hudAltMsl">—</span></div>
+      <div><span class="label">Alt. AGL:</span><span id="hudAgl">—</span></div>
+      <div><span class="label">Distancia:</span><span id="hudDist">—</span></div>
+      <div><span class="label">Desvío lateral:</span><span id="hudCrossTrack">—</span></div>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

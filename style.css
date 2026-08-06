@@ -1,0 +1,172 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: #0b1220; color: #e5e7eb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+#app {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: 100%;
+  height: 100vh;
+}
+#sidebar {
+  background: #111827;
+  padding: 14px;
+  overflow-y: auto;
+  border-right: 1px solid #1f2937;
+}
+#sidebar h1 {
+  font-size: 15px;
+  margin: 0 0 4px 0;
+  color: #38bdf8;
+}
+#sidebar .subtitle {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-bottom: 14px;
+}
+.panel {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+.panel h2 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin: 0 0 8px 0;
+}
+label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #cbd5e1;
+}
+select, input[type=number] {
+  width: 100%;
+  background: #1e293b;
+  color: #e5e7eb;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+button {
+  background: #1e3a8a;
+  color: #e5e7eb;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 6px;
+  margin-bottom: 6px;
+}
+button:hover { background: #1d4ed8; }
+button.turn-left, button.turn-right, button.climb, button.descend {
+  background: #3730a3;
+  border-color: #6366f1;
+}
+button.drop-point {
+  background: #b45309;
+  border-color: #f59e0b;
+}
+button.drop-point:disabled {
+  background: #334155;
+  border-color: #475569;
+  color: #64748b;
+  cursor: not-allowed;
+}
+#measureDistBtn.active, #measureAngleBtn.active {
+  background: #b45309;
+  border-color: #facc15;
+}
+#measureReadout {
+  font-size: 12px;
+  color: #e5e7eb;
+  line-height: 1.6;
+}
+#measureReadout .label { color: #94a3b8; }
+button.zoom-preset {
+  font-size: 11px;
+  padding: 5px 4px;
+}
+#zoomLabel {
+  font-size: 11px;
+}
+.row { display: flex; gap: 6px; }
+.row > * { flex: 1; }
+#status {
+  font-size: 12px;
+  color: #94a3b8;
+  min-height: 16px;
+}
+#pendingList, #logList {
+  font-size: 12px;
+  max-height: 130px;
+  overflow-y: auto;
+  color: #cbd5e1;
+}
+.muted { color: #64748b; font-style: italic; }
+
+#mapWrap {
+  position: relative;
+  overflow: hidden;
+}
+#mapCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+#mapCanvas.panning {
+  cursor: grabbing;
+}
+#centerBtn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 5;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid #3b82f6;
+  color: #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+#centerBtn:hover { background: #1d4ed8; }
+#centerBtn.following {
+  border-color: #22c55e;
+  color: #4ade80;
+}
+#hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  pointer-events: none;
+}
+#hud .label { color: #94a3b8; margin-right: 6px; }
+#hudTrackName {
+  position: absolute;
+  top: 10px;
+  right: 60px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #38bdf8;
+  max-width: 40%;
+}
