@@ -1,3 +1,5 @@
+import { v } from "./config.js";
+
 // Capa de curvas de nivel (RAMP2, cada 100 m) como fondo del mapa.
 //
 // Datos (generados offline con tools/gen_contours.py desde RAMP2_Contours_100m.shp):
@@ -76,8 +78,8 @@ export class ContourLayer {
   }
 
   async init() {
-    this.meta = await fetch(this.baseUrl + "index.json").then((r) => r.json());
-    const buf = await fetch(this.baseUrl + this.meta.coarse.file).then((r) => r.arrayBuffer());
+    this.meta = await fetch(v(this.baseUrl + "index.json")).then((r) => r.json());
+    const buf = await fetch(v(this.baseUrl + this.meta.coarse.file)).then((r) => r.arrayBuffer());
     this.coarse = parseContourBin(buf, 40_000);
     this.onUpdate();
   }
@@ -87,7 +89,7 @@ export class ContourLayer {
     const info = this.meta.tiles[key];
     if (!info) return;
     this.tiles.set(key, "loading");
-    fetch(this.baseUrl + info.file)
+    fetch(v(this.baseUrl + info.file))
       .then((r) => r.arrayBuffer())
       .then((buf) => {
         this.tiles.set(key, parseContourBin(buf, 2_000));

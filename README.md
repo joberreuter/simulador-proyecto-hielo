@@ -50,6 +50,12 @@ altura objetivo 400 m AGL.
   los bordes difusos del fondo global. Por encima de ~2.4 km/píxel se usa solo
   el fondo global Bedmap3 (3 km).
 
+## Importante al regenerar datos
+`vercel.json` sirve `data/` con caché de 1 año ("immutable"). Si se
+regenera o reemplaza cualquier archivo en `data/`, hay que subir
+`DATA_VERSION` en `js/config.js`; si no, los navegadores que ya visitaron el
+sitio mezclan archivos viejos (en caché) con nuevos.
+
 ## Deploy en Vercel
 No requiere build (sitio 100% estático).
 

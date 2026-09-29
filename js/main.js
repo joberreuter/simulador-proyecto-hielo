@@ -4,6 +4,7 @@ import { MapRenderer } from "./render.js";
 import { parseKmlToLonLat, buildTrackPoints } from "./kml.js";
 import { ContourLayer } from "./contours.js";
 import { HillshadeTiles } from "./hillshade_tiles.js";
+import { v } from "./config.js";
 
 const NM_PER_M = 1 / 1852;
 const ZOOM_MIN_MPP = 10;
@@ -127,12 +128,12 @@ let globalBg = null; // {img, header}
 
 async function loadGlobalBackground() {
   if (globalBg) return globalBg;
-  const header = await fetch("data/global/header.json").then((r) => r.json());
+  const header = await fetch(v("data/global/header.json")).then((r) => r.json());
   const img = new Image();
   await new Promise((resolve, reject) => {
     img.onload = resolve;
     img.onerror = reject;
-    img.src = "data/global/hillshade.png";
+    img.src = v("data/global/hillshade.png");
   });
   globalBg = { img, header };
   return globalBg;
@@ -146,15 +147,15 @@ let globalElevGrid = null;
 async function loadGlobalElevationGrid() {
   if (globalElevGrid) return globalElevGrid;
   const [header, bin] = await Promise.all([
-    fetch("data/global/header.json").then((r) => r.json()),
-    fetch("data/global/elev.bin").then((r) => r.arrayBuffer()),
+    fetch(v("data/global/header.json")).then((r) => r.json()),
+    fetch(v("data/global/elev.bin")).then((r) => r.arrayBuffer()),
   ]);
   globalElevGrid = new ElevationGrid(new Int16Array(bin), header);
   return globalElevGrid;
 }
 
 async function loadTracksIndex() {
-  const res = await fetch("data/tracks_index.json");
+  const res = await fetch(v("data/tracks_index.json"));
   tracksIndex = await res.json();
   const ids = Object.keys(tracksIndex).sort();
   els.trackSelect.innerHTML = ids
@@ -178,8 +179,8 @@ async function loadTrack(id) {
     hillshadeImg = null;
   } else {
     const [headerRes, binRes] = await Promise.all([
-      fetch(meta.elev_header).then((r) => r.json()),
-      fetch(meta.dem).then((r) => r.arrayBuffer()),
+      fetch(v(meta.elev_header)).then((r) => r.json()),
+      fetch(v(meta.dem)).then((r) => r.arrayBuffer()),
     ]);
     const int16 = new Int16Array(binRes);
     elevGrid = new ElevationGrid(int16, headerRes);
@@ -188,7 +189,7 @@ async function loadTrack(id) {
     await new Promise((resolve, reject) => {
       hillshadeImg.onload = resolve;
       hillshadeImg.onerror = reject;
-      hillshadeImg.src = meta.hillshade;
+      hillshadeImg.src = v(meta.hillshade);
     });
   }
 

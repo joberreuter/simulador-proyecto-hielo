@@ -1,3 +1,5 @@
+import { v } from "./config.js";
+
 // Fondo de hillshade en alta resolución (RAMP2, 200 m) servido como pirámide
 // de tiles WebP (ver tools/gen_hillshade_tiles.py). Se elige el nivel según el
 // zoom y solo se descargan los tiles visibles. Mientras un tile carga, se ve el
@@ -15,7 +17,7 @@ export class HillshadeTiles {
   }
 
   async init() {
-    this.meta = await fetch(this.baseUrl + "index.json").then((r) => r.json());
+    this.meta = await fetch(v(this.baseUrl + "index.json")).then((r) => r.json());
     this.levelSets = this.meta.levels.map((l) => new Set(l.tiles));
     this.onUpdate();
   }
@@ -31,7 +33,7 @@ export class HillshadeTiles {
   }
 
   _get(level, key, request) {
-    const url = `${this.baseUrl}${level}/${key}.webp`;
+    const url = v(`${this.baseUrl}${level}/${key}.webp`);
     let e = this.cache.get(url);
     if (!e && request) {
       const img = new Image();
