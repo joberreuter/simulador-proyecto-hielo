@@ -40,7 +40,12 @@ altura objetivo 400 m AGL.
   `data/contours/`: un nivel grueso (cada 500 m, simplificado 2 km) para vista
   alejada y tiles de 250 km con todas las curvas (simplificadas 60 m) que se
   cargan a demanda por debajo de 1200 m/píxel. Las curvas maestras (múltiplos
-  de 500 m) se dibujan más marcadas.
+  de 500 m) se dibujan más marcadas, con etiquetas de elevación (cada 500 m
+  de cerca, cada 1000 m alejado).
+- Fondo en alta resolución: hillshade RAMP2 (200 m) como pirámide de tiles
+  WebP en `data/hs/` (200/400/800/1600 m/píxel), generada con
+  `python tools/gen_hillshade_tiles.py` con realce de contraste. Por encima de
+  ~2.4 km/píxel se usa solo el fondo global Bedmap3 (3 km).
 
 ## Deploy en Vercel
 No requiere build (sitio 100% estático).

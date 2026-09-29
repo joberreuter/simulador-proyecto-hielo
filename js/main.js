@@ -3,6 +3,7 @@ import { FlightSim } from "./sim.js";
 import { MapRenderer } from "./render.js";
 import { parseKmlToLonLat, buildTrackPoints } from "./kml.js";
 import { ContourLayer } from "./contours.js";
+import { HillshadeTiles } from "./hillshade_tiles.js";
 
 const NM_PER_M = 1 / 1852;
 const ZOOM_MIN_MPP = 10;
@@ -75,6 +76,9 @@ const els = {
 // Curvas de nivel RAMP2 (100 m). Se carga una vez y se comparte entre
 // renderers; al llegar tiles de detalle se redibuja el cuadro.
 const contourLayer = new ContourLayer("data/contours/", () => drawFrame());
+
+// Hillshade RAMP2 200 m en tiles (fondo nítido al acercarse).
+const hsTiles = new HillshadeTiles("data/hs/", () => drawFrame());
 
 let sim = null;
 let renderer = null;
@@ -201,6 +205,7 @@ async function loadTrack(id) {
   const bg = await loadGlobalBackground();
   renderer.setGlobalBackground(bg.img, bg.header);
   renderer.setContours(contourLayer);
+  renderer.setHillshadeTiles(hsTiles);
   applyZoom(sliderToMpp(Number(els.zoomRange.value)));
 
   els.hudTrackName.textContent = meta.custom
@@ -648,6 +653,7 @@ els.kmlConvertBtn.addEventListener("click", () => {
     requestAnimationFrame(tick);
     // No bloquea el arranque: si falla, el simulador sigue sin curvas.
     contourLayer.init().catch((err) => console.warn("Curvas de nivel no disponibles:", err));
+    hsTiles.init().catch((err) => console.warn("Hillshade de alta resolución no disponible:", err));
   } catch (err) {
     console.error(err);
     const isFileProtocol = location.protocol === "file:";

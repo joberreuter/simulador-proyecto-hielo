@@ -140,12 +140,13 @@ export class ContourLayer {
       const sy0 = renderer.height / 2 - (L.oy - camY) / mpp;
       ctx.setTransform(dpr / mpp, 0, 0, -dpr / mpp, sx0 * dpr, sy0 * dpr);
 
-      ctx.strokeStyle = "rgba(214, 163, 107, 0.45)";
-      ctx.lineWidth = 0.8 * mpp;
+      // Café oscuro (estilo carta topográfica): contrasta con el hielo gris claro.
+      ctx.strokeStyle = "rgba(120, 53, 15, 0.55)";
+      ctx.lineWidth = 0.9 * mpp;
       ctx.stroke(L.normal);
 
-      ctx.strokeStyle = "rgba(234, 179, 120, 0.85)";
-      ctx.lineWidth = 1.4 * mpp;
+      ctx.strokeStyle = "rgba(120, 53, 15, 0.95)";
+      ctx.lineWidth = 1.6 * mpp;
       ctx.stroke(L.index);
     }
     ctx.restore();
@@ -166,8 +167,8 @@ export class ContourLayer {
     ctx.textBaseline = "middle";
     ctx.lineJoin = "round";
     ctx.lineWidth = 3;
-    ctx.strokeStyle = "rgba(11, 18, 32, 0.85)";
-    ctx.fillStyle = "#fcd9a8";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fillStyle = "#78350f";
 
     for (const L of layers) {
       const stride = Math.max(1, Math.round((LABEL_SPACING_PX * mpp) / L.labelStepM));

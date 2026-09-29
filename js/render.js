@@ -20,6 +20,11 @@ export class MapRenderer {
     this.contours = layer;
   }
 
+  // Capa opcional de hillshade en alta resolución (HillshadeTiles, RAMP2 200 m).
+  setHillshadeTiles(layer) {
+    this.hsTiles = layer;
+  }
+
   // Registra la imagen de fondo de todo el continente (baja resolución),
   // que se dibuja debajo del hillshade detallado del track, para dar
   // contexto al panear/alejar más allá de la zona recortada.
@@ -67,6 +72,7 @@ export class MapRenderer {
 
     this._drawGlobalBackground(camX, camY);
     this._drawHillshade(camX, camY);
+    if (this.hsTiles) this.hsTiles.draw(ctx, this, camX, camY);
     if (this.contours) this.contours.draw(ctx, this, camX, camY);
     this._drawTrack(camX, camY);
     this._drawFlownPath(camX, camY, flownPath);
