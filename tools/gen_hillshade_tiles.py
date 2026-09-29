@@ -1,6 +1,6 @@
 """
 Genera una pirámide de tiles de hillshade (WebP con transparencia) a partir de
-RAMP2_HS.tif (Quantarctica3, 200 m, EPSG:3031), para que el fondo del mapa se
+un hillshade RAMP2 de 200 m (EPSG:3031; ver make_ramp2_hillshade.py), para que el fondo del mapa se
 vea nítido al acercarse. Lo consume js/hillshade_tiles.js.
 
 Salida:
@@ -9,7 +9,8 @@ Salida:
 
 Niveles: 0 = 200 m/px, 1 = 400 m/px, 2 = 800 m/px, 3 = 1600 m/px.
 Se aplica un realce de contraste (el hillshade de RAMP2 es muy plano sobre el
-hielo) y los píxeles sin dato quedan transparentes (se ve el fondo global).
+hielo) y el océano (sin dato) se pinta gris oscuro opaco como el fondo global; así,
+dentro del rectángulo del DEM, se tapan los bordes difusos del fondo de 3 km.
 
 Uso (desde simulador/):
     python tools/gen_hillshade_tiles.py [--src RAMP2_HS.tif] [--out data/hs]
@@ -29,9 +30,7 @@ from rasterio.enums import Resampling
 from rasterio.windows import Window
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_SRC = os.path.expanduser(
-    r"~/Documents/Antarctica/Quantarctica3/Quantarctica3/TerrainModels/RAMP2/RAMP2_HS.tif"
-)
+DEFAULT_SRC = "ramp2_hs_full.tif"  # salida de tools/make_ramp2_hillshade.py
 DEFAULT_OUT = os.path.join(HERE, "..", "data", "hs")
 
 TILE = 512
@@ -43,6 +42,7 @@ NODATA = 255
 CENTER = 180.0
 GAIN = 2.0
 VMIN, VMAX = 20, 250
+OCEAN = 20  # mismo gris que el océano del fondo global (data/global/hillshade.png)
 
 
 def enhance(a):
@@ -50,14 +50,17 @@ def enhance(a):
 
 
 def save_tile(path, val, valid):
-    """val (h,w), valid bool (h,w). Rellena a TILE x TILE (transparente) en bordes."""
+    """val (h,w), valid bool (h,w).
+    Océano/sin dato dentro del raster -> gris oscuro opaco (OCEAN), igual que el
+    fondo global, para tapar los bordes difusos de 3 km del fondo global.
+    Fuera del raster (relleno a TILE x TILE en los bordes) -> transparente."""
     h, w = val.shape
     rgba = np.zeros((TILE, TILE, 4), dtype=np.uint8)
-    g = np.round(val).astype(np.uint8)
+    g = np.where(valid, np.round(val), OCEAN).astype(np.uint8)
     rgba[:h, :w, 0] = g
     rgba[:h, :w, 1] = g
     rgba[:h, :w, 2] = g
-    rgba[:h, :w, 3] = np.where(valid, 255, 0)
+    rgba[:h, :w, 3] = 255
     Image.fromarray(rgba, "RGBA").save(path, "WEBP", quality=QUALITY, method=4)
 
 
@@ -84,14 +87,12 @@ def process_level(src, out, lvl, rows=None):
             resampling=Resampling.average if f > 1 else Resampling.nearest,
         )
         valid = strip != NODATA
-        if not valid.any():
-            continue
         val = enhance(strip)
         for tc in range(n_cols):
             x0 = tc * TILE
             vm = valid[:, x0 : x0 + TILE]
-            if not vm.any():
-                continue
+            # Se escriben también los tiles solo-océano (opacos) para cubrir
+            # todo el rectángulo del DEM.
             path = os.path.join(d, f"{tc}_{tr}.webp")
             if os.path.exists(path):
                 continue

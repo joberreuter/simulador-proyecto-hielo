@@ -634,7 +634,7 @@ els.kmlConvertBtn.addEventListener("click", () => {
   if (!convertKmlLonLat) return;
   const line = convertKmlLonLat
     .map((p) => dd2dmsCompact(p.lat, true) + dd2dmsCompact(p.lon, false))
-    .join("\t");
+    .join("\r\n") + "\r\n"; // un punto por línea (CRLF para Bloc de notas en Windows)
   const blob = new Blob([line], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

@@ -81,8 +81,10 @@ export class HillshadeTiles {
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha = 1;
-    // De grueso a fino: los niveles gruesos (ya en caché) tapan huecos mientras carga el objetivo.
-    for (let lvl = levels.length - 1; lvl >= target; lvl--) {
+    // Primero el nivel inmediatamente más grueso (si ya está en caché) para tapar
+    // huecos mientras carga el nivel objetivo; los tiles son opacos.
+    const first = Math.min(levels.length - 1, target + 1);
+    for (let lvl = first; lvl >= target; lvl--) {
       const span = tile * levels[lvl].res;
       const set = this.levelSets[lvl];
       const c0 = Math.floor((vx0 - originX) / span);

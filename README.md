@@ -42,10 +42,13 @@ altura objetivo 400 m AGL.
   cargan a demanda por debajo de 1200 m/píxel. Las curvas maestras (múltiplos
   de 500 m) se dibujan más marcadas, con etiquetas de elevación (cada 500 m
   de cerca, cada 1000 m alejado).
-- Fondo en alta resolución: hillshade RAMP2 (200 m) como pirámide de tiles
-  WebP en `data/hs/` (200/400/800/1600 m/píxel), generada con
-  `python tools/gen_hillshade_tiles.py` con realce de contraste. Por encima de
-  ~2.4 km/píxel se usa solo el fondo global Bedmap3 (3 km).
+- Fondo en alta resolución: hillshade calculado de RAMP2_DEM (200 m, extensión
+  completa; el RAMP2_HS de Quantarctica viene recortado por el oeste) con
+  `python tools/make_ramp2_hillshade.py`, y convertido en pirámide de tiles
+  WebP en `data/hs/` (200/400/800/1600 m/píxel) con
+  `python tools/gen_hillshade_tiles.py`. El océano se pinta opaco para tapar
+  los bordes difusos del fondo global. Por encima de ~2.4 km/píxel se usa solo
+  el fondo global Bedmap3 (3 km).
 
 ## Deploy en Vercel
 No requiere build (sitio 100% estático).

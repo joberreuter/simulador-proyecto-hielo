@@ -9,9 +9,16 @@ que consume js/contours.js:
 Formato .bin (Float32 LE): originX, originY, nLines, luego por línea:
   elev, nPts, dx0, dy0, dx1, dy1, ...   (coords relativas al origen del archivo)
 
+El shapefile de Quantarctica3 viene recortado por el oeste (x >= -2.657e6 m) y
+deja fuera las Shetland del Sur y el extremo norte de la Península. Si se indica
+la carpeta RAMP2 (con RAMP2_DEM.tif y ramp2_dem_osu91a200m.tif), esa franja
+oeste se completa con curvas calculadas del mismo DEM (RAMP2_DEM, elipsoidal,
+que es la referencia de Contour_m), con el océano enmascarado vía osu91a == 0.
+
 Uso (desde la carpeta simulador/):
-    python tools/gen_contours.py [ruta_shp] [carpeta_salida]
-Requiere: numpy, shapely>=2, y geopandas o pyshp.
+    python tools/gen_contours.py [ruta_shp] [carpeta_salida] [carpeta_RAMP2]
+Requiere: numpy, shapely>=2, geopandas o pyshp; para la franja oeste además
+rasterio y contourpy.
 """
 import json
 import math
@@ -31,6 +38,7 @@ DEFAULT_OUT = os.path.join(HERE, "..", "data", "contours")
 
 SHP = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SHP
 OUT = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_OUT
+RAMP2_DIR = sys.argv[3] if len(sys.argv) > 3 else os.path.dirname(SHP)
 
 TILE = 250_000.0          # m, lado del tile de detalle
 DETAIL_TOL = 60.0         # m, simplificación nivel detalle (< resolución RAMP2 de 200 m)
@@ -79,6 +87,40 @@ def iter_lines():
                     yield elev, pts[a:b]
 
 
+def iter_dem_lines(xmax):
+    """Curvas cada 100 m calculadas de RAMP2_DEM para x < xmax (franja oeste)."""
+    dem_p = os.path.join(RAMP2_DIR, "RAMP2_DEM.tif")
+    osu_p = os.path.join(RAMP2_DIR, "ramp2_dem_osu91a200m.tif")
+    if not (os.path.exists(dem_p) and os.path.exists(osu_p)):
+        print("(sin RAMP2_DEM/osu91a: no se completa la franja oeste)")
+        return
+    import contourpy
+    import rasterio
+    from rasterio.windows import Window
+
+    with rasterio.open(dem_p) as dem, rasterio.open(osu_p) as osu:
+        T = dem.transform
+        ncol = int(math.ceil((xmax - T.c) / T.a)) + 1  # +1 col para empalmar
+        win = Window(0, 0, ncol, dem.height)
+        z = dem.read(1, window=win).astype(np.float64)
+        land = osu.read(1, window=win)
+        z[(z == dem.nodata) | (land <= 0) | (land == osu.nodata)] = np.nan
+        if np.all(np.isnan(z)):
+            return
+        levels = np.arange(100, np.nanmax(z) + 100, 100)
+        # coordenadas de centro de píxel
+        xs = T.c + (np.arange(ncol) + 0.5) * T.a
+        ys = T.f + (np.arange(dem.height) + 0.5) * T.e
+        gen = contourpy.contour_generator(xs, ys, z, line_type="Separate")
+        n = 0
+        for lv in levels:
+            for seg in gen.lines(lv):
+                if len(seg) >= 2:
+                    n += 1
+                    yield float(lv), seg[:, :2]
+        print(f"franja oeste (x < {xmax:.0f}): {n} curvas desde RAMP2_DEM")
+
+
 def write_bin(path, lines, origin):
     ox, oy = origin
     chunks = [np.array([ox, oy, len(lines)], dtype="<f4")]
@@ -98,9 +140,19 @@ def main():
     tile_lines = defaultdict(list)
     n_in = 0
 
-    for elev, pts in iter_lines():
+    shp_minx = [math.inf]
+
+    def all_lines():
+        for elev, pts in iter_lines():
+            shp_minx[0] = min(shp_minx[0], min(p[0] for p in pts))
+            yield elev, pts
+        yield from iter_dem_lines(shp_minx[0])
+
+    for elev, pts in all_lines():
         n_in += 1
         ls = LineString(pts)
+        if not ls.is_valid or ls.is_empty:
+            continue
         if ls.length < MIN_LEN_DETAIL:
             continue
 
