@@ -9,6 +9,11 @@ const ZOOM_MIN_MPP = 10;
 const ZOOM_MAX_MPP = 15000;
 const ZOOM_SLIDER_MAX = 1000;
 
+// "3858.5 km / 2083.4 mn"
+function fmtKmNm(km) {
+  return `${Number(km).toFixed(1)} km / ${((km * 1000) * NM_PER_M).toFixed(1)} mn`;
+}
+
 function sliderToMpp(v) {
   return ZOOM_MIN_MPP * Math.pow(ZOOM_MAX_MPP / ZOOM_MIN_MPP, v / ZOOM_SLIDER_MAX);
 }
@@ -79,7 +84,7 @@ let lastTs = null;
 let tracksIndex = null;
 
 // Track cargado por el usuario desde un KML local (no viene del índice
-// precargado). Se guarda acá y se referencia con el id especial "custom".
+// precargado). Se guarda aquí y se referencia con el id especial "custom".
 let customTrackMeta = null;
 
 // Puntos lon/lat leídos del KML elegido en el conversor (panel aparte,
@@ -151,7 +156,7 @@ async function loadTracksIndex() {
   els.trackSelect.innerHTML = ids
     .map((id) => {
       const t = tracksIndex[id];
-      return `<option value="${id}">${t.name} (${t.length_km} km)</option>`;
+      return `<option value="${id}">${t.name} (${fmtKmNm(t.length_km)})</option>`;
     })
     .join("");
 }
@@ -199,8 +204,8 @@ async function loadTrack(id) {
   applyZoom(sliderToMpp(Number(els.zoomRange.value)));
 
   els.hudTrackName.textContent = meta.custom
-    ? `${meta.name} — ${meta.length_km} km — ${meta.n_points} pts (KML, terreno baja res.)`
-    : `${meta.name} — ${meta.length_km} km — ${meta.n_points} pts`;
+    ? `${meta.name} — ${fmtKmNm(meta.length_km)} — ${meta.n_points} pts (KML, terreno baja res.)`
+    : `${meta.name} — ${fmtKmNm(meta.length_km)} — ${meta.n_points} pts`;
   els.status.textContent = `Listo. Duración estimada de vuelo: ${fmtHMS(sim.estFlightTimeSec())}`;
   playing = false;
   els.playBtn.textContent = "▶ Reproducir";
@@ -348,7 +353,7 @@ els.canvas.addEventListener(
 // ---- Preparar / transmitir giro ----
 function armTurn(direction, degrees) {
   armedTurn = { direction, degrees };
-  els.armedTurnIndicator.textContent = `Preparado: ${direction === "left" ? "izquierda" : "derecha"} ${degrees}° — pulsá "En el punto de caída" para transmitir`;
+  els.armedTurnIndicator.textContent = `Preparado: ${direction === "left" ? "izquierda" : "derecha"} ${degrees}° — pulsa "En el punto de caída" para transmitir`;
   els.dropPointBtn.disabled = false;
 }
 
@@ -420,11 +425,11 @@ function setActiveMeasureTool(tool) {
   els.measAngleRow.style.display = activeMeasureTool === "angle" ? "" : "none";
 
   if (activeMeasureTool === "distance") {
-    els.measureHint.textContent = "Mantené presionado y arrastrá sobre el mapa para trazar la línea";
+    els.measureHint.textContent = "Mantén presionado y arrastra sobre el mapa para trazar la línea";
   } else if (activeMeasureTool === "angle") {
-    els.measureHint.textContent = "Hacé click: 1) vértice, 2) primer rayo, 3) segundo rayo";
+    els.measureHint.textContent = "Haz clic: 1) vértice, 2) primer rayo, 3) segundo rayo";
   } else {
-    els.measureHint.textContent = "Elegí una herramienta";
+    els.measureHint.textContent = "Elige una herramienta";
   }
   drawFrame();
 }
@@ -593,9 +598,9 @@ els.kmlFileInput.addEventListener("change", async () => {
       opt.value = "custom";
       els.trackSelect.appendChild(opt);
     }
-    opt.textContent = `📂 ${customTrackMeta.name} (${customTrackMeta.length_km} km, personalizado)`;
+    opt.textContent = `📂 ${customTrackMeta.name} (${fmtKmNm(customTrackMeta.length_km)}, personalizado)`;
     els.trackSelect.value = "custom";
-    els.kmlLoadStatus.textContent = `Listo: ${customTrackMeta.n_points} puntos, ${customTrackMeta.length_km} km. Pulsá "Cargar track" (usa terreno de baja resolución, 3 km/píxel).`;
+    els.kmlLoadStatus.textContent = `Listo: ${customTrackMeta.n_points} puntos, ${fmtKmNm(customTrackMeta.length_km)}. Pulsa "Cargar track" (usa terreno de baja resolución, 3 km/píxel).`;
   } catch (err) {
     console.error(err);
     els.kmlLoadStatus.textContent = `⚠ Error al leer el KML: ${err.message}`;
@@ -647,7 +652,7 @@ els.kmlConvertBtn.addEventListener("click", () => {
     console.error(err);
     const isFileProtocol = location.protocol === "file:";
     els.status.innerHTML = isFileProtocol
-      ? `⚠ No se pudieron cargar los datos. Este simulador usa fetch() para leer archivos JSON/binarios, lo cual el navegador bloquea cuando se abre el archivo directamente (file://). Serví la carpeta con un servidor local, por ejemplo:<br><code>npx serve .</code> o <code>python3 -m http.server 8000</code><br>y abrí <code>http://localhost:...</code>, o desplegalo en Vercel.`
+      ? `⚠ No se pudieron cargar los datos. Este simulador usa fetch() para leer archivos JSON/binarios, lo cual el navegador bloquea cuando se abre el archivo directamente (file://). Sirve la carpeta con un servidor local, por ejemplo:<br><code>npx serve .</code> o <code>python3 -m http.server 8000</code><br>y abre <code>http://localhost:...</code>, o despliégalo en Vercel.`
       : `⚠ Error al cargar los datos: ${err.message}`;
   }
 })();
