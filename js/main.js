@@ -1,6 +1,8 @@
-import { ElevationGrid, fmtHMS, dd2dms, bearing, angleDiff } from "./geo.js";
+import { ElevationGrid, fmtHMS, dd2dms, dd2dmsCompact, bearing, angleDiff } from "./geo.js";
 import { FlightSim } from "./sim.js";
 import { MapRenderer } from "./render.js";
+import { parseKmlToLonLat, buildTrackPoints } from "./kml.js";
+import { ContourLayer } from "./contours.js";
 
 const NM_PER_M = 1 / 1852;
 const ZOOM_MIN_MPP = 10;
@@ -57,7 +59,17 @@ const els = {
   hudTrackName: document.getElementById("hudTrackName"),
   status: document.getElementById("status"),
   centerBtn: document.getElementById("centerBtn"),
+  kmlFileInput: document.getElementById("kmlFileInput"),
+  kmlLoadStatus: document.getElementById("kmlLoadStatus"),
+  kmlConvertInput: document.getElementById("kmlConvertInput"),
+  kmlConvertBtn: document.getElementById("kmlConvertBtn"),
+  kmlConvertStatus: document.getElementById("kmlConvertStatus"),
+  contoursToggle: document.getElementById("contoursToggle"),
 };
+
+// Curvas de nivel RAMP2 (100 m). Se carga una vez y se comparte entre
+// renderers; al llegar tiles de detalle se redibuja el cuadro.
+const contourLayer = new ContourLayer("data/contours/", () => drawFrame());
 
 let sim = null;
 let renderer = null;
@@ -65,6 +77,14 @@ let playing = false;
 let speedMult = 1;
 let lastTs = null;
 let tracksIndex = null;
+
+// Track cargado por el usuario desde un KML local (no viene del índice
+// precargado). Se guarda acá y se referencia con el id especial "custom".
+let customTrackMeta = null;
+
+// Puntos lon/lat leídos del KML elegido en el conversor (panel aparte,
+// independiente del track cargado en el simulador).
+let convertKmlLonLat = null;
 
 // Giro preparado por el navegante, pendiente de transmitir al piloto
 let armedTurn = null; // {direction:'left'|'right', degrees:number}
@@ -109,6 +129,21 @@ async function loadGlobalBackground() {
   return globalBg;
 }
 
+// Grilla de elevación de todo el continente, baja resolución (3 km/píxel).
+// Se usa como terreno para tracks personalizados cargados desde un KML,
+// que no tienen un recorte de alta resolución precalculado.
+let globalElevGrid = null;
+
+async function loadGlobalElevationGrid() {
+  if (globalElevGrid) return globalElevGrid;
+  const [header, bin] = await Promise.all([
+    fetch("data/global/header.json").then((r) => r.json()),
+    fetch("data/global/elev.bin").then((r) => r.arrayBuffer()),
+  ]);
+  globalElevGrid = new ElevationGrid(new Int16Array(bin), header);
+  return globalElevGrid;
+}
+
 async function loadTracksIndex() {
   const res = await fetch("data/tracks_index.json");
   tracksIndex = await res.json();
@@ -123,21 +158,30 @@ async function loadTracksIndex() {
 
 async function loadTrack(id) {
   els.status.textContent = "Cargando datos del track...";
-  const meta = tracksIndex[id];
+  const meta = id === "custom" ? customTrackMeta : tracksIndex[id];
+  if (!meta) return;
 
-  const [headerRes, binRes] = await Promise.all([
-    fetch(meta.elev_header).then((r) => r.json()),
-    fetch(meta.dem).then((r) => r.arrayBuffer()),
-  ]);
-  const int16 = new Int16Array(binRes);
-  const elevGrid = new ElevationGrid(int16, headerRes);
+  let elevGrid, hillshadeImg;
+  if (meta.custom) {
+    // Track cargado desde un KML local: sin recorte de alta resolución
+    // precalculado, se usa el terreno de todo el continente (3 km/píxel).
+    elevGrid = await loadGlobalElevationGrid();
+    hillshadeImg = null;
+  } else {
+    const [headerRes, binRes] = await Promise.all([
+      fetch(meta.elev_header).then((r) => r.json()),
+      fetch(meta.dem).then((r) => r.arrayBuffer()),
+    ]);
+    const int16 = new Int16Array(binRes);
+    elevGrid = new ElevationGrid(int16, headerRes);
 
-  const hillshadeImg = new Image();
-  await new Promise((resolve, reject) => {
-    hillshadeImg.onload = resolve;
-    hillshadeImg.onerror = reject;
-    hillshadeImg.src = meta.hillshade;
-  });
+    hillshadeImg = new Image();
+    await new Promise((resolve, reject) => {
+      hillshadeImg.onload = resolve;
+      hillshadeImg.onerror = reject;
+      hillshadeImg.src = meta.hillshade;
+    });
+  }
 
   sim = new FlightSim(meta.points, elevGrid, {
     speedKmh: Number(els.speedKmh.value) || 350,
@@ -151,9 +195,12 @@ async function loadTrack(id) {
   renderer.resize();
   const bg = await loadGlobalBackground();
   renderer.setGlobalBackground(bg.img, bg.header);
+  renderer.setContours(contourLayer);
   applyZoom(sliderToMpp(Number(els.zoomRange.value)));
 
-  els.hudTrackName.textContent = `${meta.name} — ${meta.length_km} km — ${meta.n_points} pts`;
+  els.hudTrackName.textContent = meta.custom
+    ? `${meta.name} — ${meta.length_km} km — ${meta.n_points} pts (KML, terreno baja res.)`
+    : `${meta.name} — ${meta.length_km} km — ${meta.n_points} pts`;
   els.status.textContent = `Listo. Duración estimada de vuelo: ${fmtHMS(sim.estFlightTimeSec())}`;
   playing = false;
   els.playBtn.textContent = "▶ Reproducir";
@@ -516,12 +563,86 @@ window.addEventListener("resize", () => {
   }
 });
 
+// ---- Capa de curvas de nivel ----
+els.contoursToggle.addEventListener("change", () => {
+  contourLayer.visible = els.contoursToggle.checked;
+  drawFrame();
+});
+
+// ---- Cargar track KML desde disco ----
+els.kmlFileInput.addEventListener("change", async () => {
+  const file = els.kmlFileInput.files[0];
+  if (!file) return;
+  els.kmlLoadStatus.textContent = "Leyendo KML...";
+  try {
+    const text = await file.text();
+    const lonlat = parseKmlToLonLat(text);
+    const points = buildTrackPoints(lonlat);
+    const lengthKm = points[points.length - 1].d / 1000;
+    customTrackMeta = {
+      name: file.name.replace(/\.kml$/i, ""),
+      points,
+      length_km: Number(lengthKm.toFixed(1)),
+      n_points: points.length,
+      custom: true,
+    };
+
+    let opt = els.trackSelect.querySelector('option[value="custom"]');
+    if (!opt) {
+      opt = document.createElement("option");
+      opt.value = "custom";
+      els.trackSelect.appendChild(opt);
+    }
+    opt.textContent = `📂 ${customTrackMeta.name} (${customTrackMeta.length_km} km, personalizado)`;
+    els.trackSelect.value = "custom";
+    els.kmlLoadStatus.textContent = `Listo: ${customTrackMeta.n_points} puntos, ${customTrackMeta.length_km} km. Pulsá "Cargar track" (usa terreno de baja resolución, 3 km/píxel).`;
+  } catch (err) {
+    console.error(err);
+    els.kmlLoadStatus.textContent = `⚠ Error al leer el KML: ${err.message}`;
+  }
+});
+
+// ---- Conversor KML -> TXT (pares de coordenadas DMS compactas) ----
+els.kmlConvertInput.addEventListener("change", async () => {
+  const file = els.kmlConvertInput.files[0];
+  convertKmlLonLat = null;
+  els.kmlConvertBtn.disabled = true;
+  if (!file) return;
+  els.kmlConvertStatus.textContent = "Leyendo KML...";
+  try {
+    const text = await file.text();
+    convertKmlLonLat = parseKmlToLonLat(text);
+    els.kmlConvertStatus.textContent = `Listo: ${convertKmlLonLat.length} puntos.`;
+    els.kmlConvertBtn.disabled = false;
+  } catch (err) {
+    console.error(err);
+    els.kmlConvertStatus.textContent = `⚠ Error al leer el KML: ${err.message}`;
+  }
+});
+
+els.kmlConvertBtn.addEventListener("click", () => {
+  if (!convertKmlLonLat) return;
+  const line = convertKmlLonLat
+    .map((p) => dd2dmsCompact(p.lat, true) + dd2dmsCompact(p.lon, false))
+    .join("\t");
+  const blob = new Blob([line], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const baseName = els.kmlConvertInput.files[0].name.replace(/\.kml$/i, "");
+  a.href = url;
+  a.download = `${baseName}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
 (async function init() {
   try {
     els.status.textContent = "Cargando índice de tracks...";
     await loadTracksIndex();
     await loadTrack(els.trackSelect.value);
     requestAnimationFrame(tick);
+    // No bloquea el arranque: si falla, el simulador sigue sin curvas.
+    contourLayer.init().catch((err) => console.warn("Curvas de nivel no disponibles:", err));
   } catch (err) {
     console.error(err);
     const isFileProtocol = location.protocol === "file:";

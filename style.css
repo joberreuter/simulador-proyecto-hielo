@@ -46,6 +46,18 @@ label {
   margin-bottom: 4px;
   color: #cbd5e1;
 }
+label.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+input[type=file] {
+  width: 100%;
+  color: #cbd5e1;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
 select, input[type=number] {
   width: 100%;
   background: #1e293b;

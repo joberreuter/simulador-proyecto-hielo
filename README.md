@@ -35,6 +35,12 @@ altura objetivo 400 m AGL.
 - El MDE es Bedmap3 surface a 500 m de resolución nativa (EPSG:3031). Se
   recortó y, para los tracks más largos, se remuestreó (factor 3) para
   mantener los archivos livianos (~14 MB en total para las 13 líneas).
+- Curvas de nivel de fondo: RAMP2 cada 100 m (Liu et al. 2015, NSIDC-0082,
+  vía Quantarctica3). Se generan con `python tools/gen_contours.py` en
+  `data/contours/`: un nivel grueso (cada 500 m, simplificado 2 km) para vista
+  alejada y tiles de 250 km con todas las curvas (simplificadas 60 m) que se
+  cargan a demanda por debajo de 1200 m/píxel. Las curvas maestras (múltiplos
+  de 500 m) se dibujan más marcadas.
 
 ## Deploy en Vercel
 No requiere build (sitio 100% estático).

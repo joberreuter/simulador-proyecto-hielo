@@ -100,3 +100,65 @@ export function dd2dms(dd, isLat) {
   const sec = ((minFloat - min) * 60).toFixed(1);
   return `${deg}°${String(min).padStart(2, "0")}'${sec}"${dir}`;
 }
+
+// Igual que dd2dms pero en formato compacto sin símbolos, para el
+// conversor KML -> TXT: DDMMSS + hemisferio (lat, 2 dígitos de grado) o
+// DDDMMSS + hemisferio (lon, 3 dígitos de grado). Segundos redondeados
+// al entero más cercano, con acarreo hacia minutos/grados si corresponde.
+export function dd2dmsCompact(dd, isLat) {
+  const dir = isLat ? (dd >= 0 ? "N" : "S") : dd >= 0 ? "E" : "W";
+  const abs = Math.abs(dd);
+  let deg = Math.floor(abs);
+  let minFloat = (abs - deg) * 60;
+  let min = Math.floor(minFloat);
+  let sec = Math.round((minFloat - min) * 60);
+  if (sec >= 60) {
+    sec -= 60;
+    min += 1;
+  }
+  if (min >= 60) {
+    min -= 60;
+    deg += 1;
+  }
+  const degDigits = isLat ? 2 : 3;
+  return `${String(deg).padStart(degDigits, "0")}${String(min).padStart(2, "0")}${String(sec).padStart(2, "0")}${dir}`;
+}
+
+// ---- Proyección WGS84 (lon/lat, grados) <-> EPSG:3031 (polar estereográfica
+// sur, x/y en metros) ----
+// Implementación de Snyder (variante B), verificada numéricamente contra
+// pyproj/EPSG:3031 usando los puntos ya proyectados de los tracks existentes
+// (error < 1 mm en los casos de prueba).
+const WGS84_A = 6378137.0;
+const WGS84_F = 1 / 298.257223563;
+const PS_E2 = WGS84_F * (2 - WGS84_F);
+const PS_E = Math.sqrt(PS_E2);
+const PS_LAT_TS = -71; // paralelo estándar de EPSG:3031
+const PS_LON0 = 0;
+
+function _d2r(d) {
+  return (d * Math.PI) / 180;
+}
+
+function _psT(phi) {
+  return (
+    Math.tan(Math.PI / 4 - phi / 2) /
+    Math.pow((1 - PS_E * Math.sin(phi)) / (1 + PS_E * Math.sin(phi)), PS_E / 2)
+  );
+}
+
+// lon/lat en grados (WGS84) -> x/y en metros (EPSG:3031)
+export function lonlat2xy(lon, lat) {
+  const phi = _d2r(-lat);
+  const lambda = _d2r(-lon);
+  const lambda0 = _d2r(-PS_LON0);
+  const phi1 = _d2r(-PS_LAT_TS);
+
+  const t = _psT(phi);
+  const t1 = _psT(phi1);
+  const m1 = Math.cos(phi1) / Math.sqrt(1 - PS_E2 * Math.sin(phi1) ** 2);
+  const rho = WGS84_A * m1 * (t / t1);
+  const xp = rho * Math.sin(lambda - lambda0);
+  const yp = -rho * Math.cos(lambda - lambda0);
+  return [-xp, -yp];
+}

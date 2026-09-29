@@ -20,6 +20,9 @@
       <input type="number" id="speedKmh" value="350" min="50" max="900" step="10" />
       <button id="loadBtn">Cargar track</button>
       <div id="status"></div>
+      <label for="kmlFileInput" style="margin-top:10px">Cargar track KML desde disco</label>
+      <input type="file" id="kmlFileInput" accept=".kml" />
+      <div id="kmlLoadStatus" class="muted" style="margin-top:4px"></div>
     </div>
 
     <div class="panel">
@@ -41,6 +44,7 @@
       <input type="range" id="zoomRange" min="0" max="1000" step="1" value="491" style="width:100%" />
       <div id="zoomLabel" class="muted" style="margin-bottom:6px">—</div>
       <div class="muted" style="margin-top:2px">También podés usar la rueda del mouse sobre el mapa</div>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="contoursToggle" checked /> Curvas de nivel RAMP2 (100 m)</label>
       <label for="nudgeSeconds" style="margin-top:8px">Adelantar/retroceder (mismo rumbo)</label>
       <div class="row">
         <input type="number" id="nudgeSeconds" value="30" min="1" max="3600" style="margin-bottom:0" />
@@ -82,6 +86,14 @@
         <div id="measBearingRow" style="display:none"><span class="label">Rumbo:</span> <span id="measBearing">—</span></div>
         <div id="measAngleRow" style="display:none"><span class="label">Ángulo:</span> <span id="measAngle">—</span></div>
       </div>
+    </div>
+
+    <div class="panel">
+      <h2>Conversor KML → TXT</h2>
+      <div class="muted" style="margin-bottom:6px">Genera un .txt con pares de coordenadas DMS compactas (DDMMSSN/SDDDMMSSE/W), una línea de vuelo por archivo.</div>
+      <input type="file" id="kmlConvertInput" accept=".kml" />
+      <button id="kmlConvertBtn" style="width:100%" disabled>⬇ Convertir y descargar .txt</button>
+      <div id="kmlConvertStatus" class="muted" style="margin-top:4px"></div>
     </div>
 
     <div class="panel">

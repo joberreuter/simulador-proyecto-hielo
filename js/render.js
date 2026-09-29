@@ -11,6 +11,13 @@ export class MapRenderer {
     // del recorte detallado del track. Se setea una sola vez con setGlobalBackground.
     this.globalImg = null;
     this.globalCorners = null; // [x0,y0,x1,y1] en mundo
+
+    // Capa opcional de curvas de nivel (ContourLayer), sobre el hillshade.
+    this.contours = null;
+  }
+
+  setContours(layer) {
+    this.contours = layer;
   }
 
   // Registra la imagen de fondo de todo el continente (baja resolución),
@@ -60,6 +67,7 @@ export class MapRenderer {
 
     this._drawGlobalBackground(camX, camY);
     this._drawHillshade(camX, camY);
+    if (this.contours) this.contours.draw(ctx, this, camX, camY);
     this._drawTrack(camX, camY);
     this._drawFlownPath(camX, camY, flownPath);
     if (aircraft) this._drawHeadingProjection(camX, camY, aircraft);
